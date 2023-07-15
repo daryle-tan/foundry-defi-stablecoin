@@ -16,6 +16,13 @@ import {Test, console} from "forge-std/Test.sol";
 import {StdCheats} from "forge-std/StdCheats.sol";
 
 contract DSCEngineTest is StdCheats, Test {
+    event CollateralRedeemed(
+        address indexed redeemFrom,
+        address indexed redeemTo,
+        address token,
+        uint256 amount
+    ); // if redeemFrom != redeemedTo, then it was liquidated
+
     DSCEngine public dsce;
     DecentralizedStableCoin public dsc;
     HelperConfig public helperConfig;
@@ -389,6 +396,17 @@ contract DSCEngineTest is StdCheats, Test {
         dsce.redeemCollateral(weth, amountCollateral);
         uint256 userBalance = ERC20Mock(weth).balanceOf(user);
         assertEq(userBalance, amountCollateral);
+        vm.stopPrank();
+    }
+
+    function testEmitCollateralRedeemedWithCorrectArgs()
+        public
+        depositedCollateral
+    {
+        vm.expectEmit(true, true, true, true, address(dsce));
+        emit CollateralRedeemed(user, user, weth, amountCollateral);
+        vm.startPrank(user);
+        dsce.redeemCollateral(weth, amountCollateral);
         vm.stopPrank();
     }
 
